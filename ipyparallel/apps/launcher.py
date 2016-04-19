@@ -1234,10 +1234,16 @@ class SlurmLauncher(BatchSystemLauncher):
     timelimit = Any(u"", config=True,
         help="Slurm timelimit to be used")
 
+    mem = Any(u"", config=True,
+        help="Slurm memory needed")
+
     def _account_changed(self, name, old, new):
         self.context[name] = new
 
     def _timelimit_changed(self, name, old, new):
+        self.context[name] = new
+
+    def _mem_changed(self, name, old, new):
         self.context[name] = new
 
     batch_file = Unicode(u'')
@@ -1255,8 +1261,11 @@ class SlurmLauncher(BatchSystemLauncher):
     timelimit_regexp = CRegExp('#SBATCH\W+(?:--time|-t)\W+\$?\w+')
     timelimit_template = Unicode('#SBATCH --time={timelimit}')
 
+    mem_regexp = CRegExp('#SBATCH\W+(?:--mem)\W+\$?\w+')
+    mem_template = Unicode('#SBATCH --mem={mem}')
+
     def _insert_options_in_script(self):
-        """insert 'partition' (slurm name for queue), 'account' and 'timeout'
+        """insert 'partition' (slurm name for queue), 'account' 'mem', and 'timeout'
 
         If necessary
         """
@@ -1274,6 +1283,11 @@ class SlurmLauncher(BatchSystemLauncher):
             self.log.debug("adding slurm time limit settings to batch script")
             firstline, rest = self.batch_template.split('\n',1)
             self.batch_template = u'\n'.join([firstline, self.timelimit_template, rest])
+
+        if self.mem and not self.mem_regexp.search(self.batch_template):
+            self.log.debug("adding slurm mem settings to batch script")
+            firstline, rest = self.batch_template.split('\n',1)
+            self.batch_template = u'\n'.join([firstline, self.mem_template, rest])
 
 
 class SlurmControllerLauncher(SlurmLauncher, BatchClusterAppMixin):
